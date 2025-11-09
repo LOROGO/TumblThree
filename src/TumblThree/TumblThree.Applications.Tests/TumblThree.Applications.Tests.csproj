@@ -21,8 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Copy the CookieParser.cs directly into test project for standalone testing -->
-    <Compile Include="..\TumblThree.Applications\CookieParser.cs" Link="CookieParser.cs" />
+    <ProjectReference Include="..\TumblThree.Applications\TumblThree.Applications.csproj">
+      <Private>true</Private>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>
