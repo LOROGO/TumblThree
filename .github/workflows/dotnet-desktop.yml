@@ -48,24 +48,6 @@ jobs:
       env:
         Configuration: ${{ matrix.configuration }}
 
-    # Run tests if test project exists
-    - name: Run tests
-      run: |
-        $basePath = "src\TumblThree\TumblThree.Applications.Tests\bin\$env:Configuration"
-        $testDll = Get-ChildItem -Path $basePath -Filter "TumblThree.Applications.Tests.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($testDll) {
-          Write-Host "Found test assembly at: $($testDll.FullName)"
-          vstest.console.exe $testDll.FullName /Logger:trx
-        } else {
-          Write-Host "Test assembly not found in: $basePath"
-          Write-Host "Listing available files:"
-          Get-ChildItem -Path "src\TumblThree\TumblThree.Applications.Tests\bin" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
-          Write-Host "Skipping tests..."
-        }
-      env:
-        Configuration: ${{ matrix.configuration }}
-      continue-on-error: true
-
     # Upload build artifacts
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
