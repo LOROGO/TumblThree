@@ -20,8 +20,8 @@ jobs:
     runs-on: windows-latest
 
     env:
-      Solution_Name: src\TumblThree\TumblThree.sln
-      Test_Project_Path: src\TumblThree\TumblThree.Applications.Tests\TumblThree.Applications.Tests.csproj
+      Solution_Name: TumblThree.sln
+      Test_Project_Path: TumblThree.Applications.Tests\TumblThree.Applications.Tests.csproj
 
     steps:
     - name: Checkout
@@ -51,16 +51,30 @@ jobs:
     # Run tests if test project exists
     - name: Run tests
       run: |
-        $testDll = "src\TumblThree\TumblThree.Applications.Tests\bin\$env:Configuration\TumblThree.Applications.Tests.dll"
+        $testDll = "TumblThree.Applications.Tests\bin\$env:Configuration\TumblThree.Applications.Tests.dll"
         if (Test-Path $testDll) {
+          Write-Host "Running tests from: $testDll"
           vstest.console.exe $testDll /Logger:trx
         } else {
           Write-Host "Test assembly not found at: $testDll"
+          Write-Host "Contents of TumblThree.Applications.Tests\bin:"
+          if (Test-Path "TumblThree.Applications.Tests\bin") {
+            Get-ChildItem -Path "TumblThree.Applications.Tests\bin" -Recurse | Select-Object FullName
+          }
           Write-Host "Skipping tests..."
         }
       env:
         Configuration: ${{ matrix.configuration }}
       continue-on-error: true
+
+    # Upload test results
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.configuration }}
+        path: "**/*.trx"
+        if-no-files-found: ignore
 
     # Upload build artifacts
     - name: Upload build artifacts
@@ -68,5 +82,5 @@ jobs:
       with:
         name: TumblThree-${{ matrix.configuration }}
         path: |
-          src\TumblThree\TumblThree.Presentation\bin\${{ matrix.configuration }}
+          TumblThree.Presentation\bin\${{ matrix.configuration }}\**\*
         if-no-files-found: warn
