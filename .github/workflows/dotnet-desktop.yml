@@ -1,0 +1,72 @@
+# This workflow will build, test a WPF desktop application
+# built on .NET Framework 4.7.2
+
+name: .NET Framework Desktop
+
+on:
+  push:
+    branches: [ "TestsFinal", "master" ]
+  pull_request:
+    branches: [ "TestsFinal", "master" ]
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    env:
+      Solution_Name: TumblThree.sln
+      Test_Project_Path: TumblThree.Applications.Tests\TumblThree.Applications.Tests.csproj
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Add MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+
+    # Setup NuGet
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1
+
+    # Restore NuGet packages
+    - name: Restore NuGet packages
+      run: nuget restore $env:Solution_Name
+
+    # Build the solution
+    - name: Build the solution
+      run: msbuild $env:Solution_Name /p:Configuration=$env:Configuration /p:Platform="Any CPU"
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # Execute all unit tests in the solution
+    - name: Execute unit tests
+      run: msbuild $env:Test_Project_Path /t:Build /p:Configuration=$env:Configuration
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # Run tests using VSTest
+    - name: Run tests
+      run: |
+        $testAssembly = "TumblThree.Applications.Tests\bin\$env:Configuration\TumblThree.Applications.Tests.dll"
+        if (Test-Path $testAssembly) {
+          vstest.console.exe $testAssembly
+        }
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # Upload build artifacts
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: TumblThree-${{ matrix.configuration }}
+        path: |
+          TumblThree\bin\${{ matrix.configuration }}
