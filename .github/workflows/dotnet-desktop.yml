@@ -20,8 +20,8 @@ jobs:
     runs-on: windows-latest
 
     env:
-      Solution_Name: src\TumblThree\TumblThree.sln
-      Test_Project_Path: src\TumblThree\TumblThree.Applications.Tests\TumblThree.Applications.Tests.csproj
+      Solution_Name: TumblThree.sln
+      Test_Project_Path: TumblThree.Applications.Tests\TumblThree.Applications.Tests.csproj
 
     steps:
     - name: Checkout
@@ -29,6 +29,12 @@ jobs:
       with:
         fetch-depth: 0
         submodules: recursive
+
+    # Install .NET SDK (required for SDK-style projects like your test project)
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.0.x'
 
     # Add MSBuild to the PATH
     - name: Setup MSBuild.exe
@@ -44,36 +50,15 @@ jobs:
 
     # Build the solution
     - name: Build the solution
-      run: msbuild $env:Solution_Name /p:Configuration=$env:Configuration /p:Platform="Any CPU" /maxcpucount /v:m
+      run: msbuild $env:Solution_Name /p:Configuration=$env:Configuration /p:Platform="Any CPU" /maxcpucount
       env:
         Configuration: ${{ matrix.configuration }}
 
-    # Verify build output
-    - name: Verify build output
-      run: |
-        Write-Host "Checking build outputs..."
-        Get-ChildItem -Path "src\TumblThree\TumblThree.Applications.Tests\bin" -Recurse -Filter "*.dll" | ForEach-Object { Write-Host $_.FullName }
-      shell: pwsh
-
-    # Run tests if test project exists
+    # Run tests using dotnet test (SDK-style project)
     - name: Run tests
-      run: |
-        $testDll = "src\TumblThree\TumblThree.Applications.Tests\bin\$env:Configuration\TumblThree.Applications.Tests.dll"
-        
-        if (Test-Path $testDll) {
-          Write-Host "Found test assembly at: $testDll"
-          
-          # Use VSTest with proper settings
-          vstest.console.exe $testDll /Logger:trx /ResultsDirectory:TestResults /Platform:x64 /Framework:Framework472
-        } else {
-          Write-Host "Test assembly not found at: $testDll"
-          Write-Host "Listing directory contents:"
-          Get-ChildItem -Path "src\TumblThree\TumblThree.Applications.Tests\bin" -Recurse | Format-Table FullName
-          exit 1
-        }
+      run: dotnet test $env:Test_Project_Path --configuration $env:Configuration --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
       env:
         Configuration: ${{ matrix.configuration }}
-      shell: pwsh
 
     # Upload test results
     - name: Upload test results
@@ -82,7 +67,7 @@ jobs:
       with:
         name: test-results-${{ matrix.configuration }}
         path: TestResults/*.trx
-        if-no-files-found: ignore
+        if-no-files-found: warn
 
     # Upload build artifacts
     - name: Upload build artifacts
@@ -90,5 +75,5 @@ jobs:
       with:
         name: TumblThree-${{ matrix.configuration }}
         path: |
-          src\TumblThree\TumblThree.Presentation\bin\${{ matrix.configuration }}
+          TumblThree.Presentation\bin\${{ matrix.configuration }}
         if-no-files-found: warn
